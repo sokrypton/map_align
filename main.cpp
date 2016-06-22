@@ -52,8 +52,6 @@ vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
                 vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b);
 
 // CHK: check number of contact and gaps made and compute alignment score
-// input: a2b (alignment)
-// output: con_sco (contacts); gap_sco (contacts)
 void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b);
 
 void add_mtx (mtx_double &A, mtx_double &B){
