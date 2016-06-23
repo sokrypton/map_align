@@ -36,24 +36,16 @@ inline bool exists (const std::string& name) {
     return f.good();
 }
 
-double norm(double mean, double stdev, double x){return exp_fast(-pow((x - mean),2)/(2*(pow(stdev,2))));}
+double gaussian(double mean, double stdev, double x){return exp_fast(-pow((x - mean),2)/(2*(pow(stdev,2))));}
 
 vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx);
 double Falign(double *sco_mtx, int rows, int cols);
 
 double sepw(double sep){if(sep <= 4){return 0.50;}else if(sep == 5){return 0.75;}else{return 1.00;}}
 
-// INITIATE SCORE MATRIX: function for populating the initial similarity matrix
-void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
-             vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b);
-
+void ini_SCO(double sep_x, double sep_y, mtx_double &SCO, vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b);
 void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b);
-
-// MODIFY SCORE MATRIX: function for modifying the initial similarity matrix
-vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
-                vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b);
-
-// CHK: check number of contact and gaps made and compute alignment score
+vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO, vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b);
 void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b);
 
 void add_mtx (mtx_double &A, mtx_double &B){
@@ -160,8 +152,7 @@ int main(int argc, const char * argv[])
                 for(int g_e = 0; g_e < gap_e_steps.size(); g_e++){double gap_e = gap_open/gap_e_steps[g_e];
                     
                     // restart SCO matrix
-                    mtx_double SCO = C_SCO;
-                    if(mode == 0){add_mtx(SCO,P_SCO);}
+                    mtx_double SCO = C_SCO;if(mode == 0){add_mtx(SCO,P_SCO);}
                     
                     // get alignment (a2b mapping)
                     vec_int a2b = mod_SCO(20,gap_open,gap_e,SCO,vec_a_div,vec_b_div,vec_a,vec_b,vec_a_i,vec_b_i,mtx_a,mtx_b);
@@ -186,25 +177,10 @@ int main(int argc, const char * argv[])
             }
         }
     }
-    int aln_len = 0;
-    // compute the expected score over the aligned region:
-    for(int ai = 0; ai < size_a; ai++){
-        int bi = a2b_max[ai];
-        if(bi != -1){aln_len++;}
-    }
-    
+    int aln_len = 0;for(int ai = 0; ai < size_a; ai++){int bi = a2b_max[ai];if(bi != -1){aln_len++;}}
     // Report the BEST score
-    int ai = 0; while(a2b_max[ai] == -1){ai++;}
-    int aj = size_a - 1; while(a2b_max[aj] == -1){aj--;}
-    cout << "MAX " << max_sep_x << "_" << max_sep_y << "_" << max_mode << "_" << max_g_e << " " << file_a << " " << file_b
-    << " " << con_max+gap_max
-    << " " << aln_len;
-    for(int a = 0; a < size_a; a++){
-        int b = a2b_max[a];
-        if(b != -1){
-            cout << " " << a << ":" << b;
-        }
-    }
+    cout << "MAX " << max_sep_x << "_" << max_sep_y << "_" << max_mode << "_" << max_g_e << " " << file_a << " " << file_b << " " << con_max+gap_max << " " << aln_len;
+    for(int a = 0; a < size_a; a++){int b = a2b_max[a];if(b != -1){cout << " " << a << ":" << b;}}
     cout << endl;
     return 0;
 }
@@ -322,6 +298,7 @@ void load_data (string file, int ss_cutoff, mtx_double &mtx, vec_int &vec_div, v
         if(vec_i[i].size() > 0){vec.push_back(i);}
     }
 }
+// INITIATE SCORE MATRIX: function for populating the initial similarity matrix
 void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
              vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b)
 {
@@ -347,7 +324,7 @@ void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
                             double sep_M = min(sep_a,sep_b);
                             double sep_std = sep_y*(1+pow(sep_M-2,sep_x));
                             if(sep_D/sep_std < 6){
-                                M[n*B[k]+m] = mtx_a[ai][aj] * mtx_b[bi][bj] * sepw(sep_M) * norm(0,sep_std,sep_D);
+                                M[n*B[k]+m] = mtx_a[ai][aj] * mtx_b[bi][bj] * sepw(sep_M) * gaussian(0,sep_std,sep_D);
                             }else{M[n*B[k]+m] = 0;}
                         }
                     }
@@ -394,6 +371,7 @@ void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_doubl
     }
     
 }
+// MODIFY SCORE MATRIX: function for modifying the initial similarity matrix
 vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
                 vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b)
 {
@@ -426,6 +404,7 @@ vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
     }
     return(a2b_tmp);
 }
+// CHK: check number of contact and gaps made and compute alignment score
 void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b)
 {
     
