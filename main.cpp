@@ -47,6 +47,8 @@ double sepw(double sep){if(sep <= 4){return 0.50;}else if(sep == 5){return 0.75;
 void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
              vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b);
 
+void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b);
+
 // MODIFY SCORE MATRIX: function for modifying the initial similarity matrix
 vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
                 vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b);
@@ -79,7 +81,7 @@ int main(int argc, const char * argv[])
         {
                  if(arg == "-a"){file_a = argv[a+1]; a++;}
             else if(arg == "-b"){file_b = argv[a+1]; a++;}
-            else if(arg == "-prf"){use_prf = true; a++;}
+            else if(arg == "-prf"){use_prf = true;}
             else if(arg == "-gap_o"){gap_open = stod(argv[a+1]); a++;}
             else if(arg == "-gap_e"){gap_ext  = stod(argv[a+1]); a++;}
             else if(arg == "-ss_cut"){ss_cutoff  = stoi(argv[a+1]); a++;}
@@ -124,41 +126,7 @@ int main(int argc, const char * argv[])
     load_data(file_b,ss_cutoff,mtx_b,vec_b_div,vec_b,vec_b_i,prf_b,aa_b,ss_b);
     int size_b = mtx_b.size();
     
-    mtx_double P_SCO;
-    
-    if(use_prf == true)
-    {
-        // compute profile similarity
-        P_SCO.resize(size_a,vector<double>(size_b,0));
-        vec_double pb(20,0); int prf_size = prf_a[0].size();
-        double pb_size = 0;
-        for(int ai = 0; ai < size_a; ai++)
-        {
-            if(aa_a[ai] != 'X')
-            {
-                for(int p=0; p < prf_size; p++){pb[p] += prf_a[ai][p];}
-                pb_size += 1;
-            }
-        }
-        for(int bi = 0; bi < size_b; bi++)
-        {
-            if(aa_b[bi] != 'X')
-            {
-                for(int p=0; p < prf_size; p++){pb[p] += prf_b[bi][p];}
-                pb_size += 1;
-            }
-        }
-        for (int i=0; i < size_a; i++){
-            for (int j=0; j < size_b; j++){
-                if(aa_a[i] == 'X' or aa_b[j] == 'X'){P_SCO[i][j] = 0;}
-                else{
-                    double tmp_sco = 0;
-                    for(int p=0; p < prf_size; p++){tmp_sco += (prf_a[i][p]*prf_b[j][p])/(pb[p]/pb_size);}
-                    P_SCO[i][j] = log2(tmp_sco)/5;
-                }
-            }
-        }
-    }
+    mtx_double P_SCO;if(use_prf == true){ini_prf_SCO(P_SCO,prf_a,aa_a,prf_b,aa_b);}
     
     // keeping track of the BEST alignment
     
@@ -172,13 +140,13 @@ int main(int argc, const char * argv[])
     
     vec_double gap_e_steps {5,10,100,1000};
     
-    // try different sep penalities!
-    vec_double sep_x_steps {0,1,2};
-    for(int sx = 0; sx < sep_x_steps.size(); sx++){
-        double sep_x = sep_x_steps[sx];
+    // try different sep (sequence seperation difference) penalities
+    vec_double sep_x_steps {0,1,2}; // (constant, linear, quadratic)
+    for(int sx = 0; sx < sep_x_steps.size(); sx++){double sep_x = sep_x_steps[sx];
+        
+        //try different scaling factors for sep penalities
         vec_double sep_y_steps {1,2,4,8,16,32};
-        for(int sy = 0; sy < sep_y_steps.size(); sy++){
-            double sep_y = sep_y_steps[sy];
+        for(int sy = 0; sy < sep_y_steps.size(); sy++){double sep_y = sep_y_steps[sy];
             
             // Get initial score matrix
             mtx_double C_SCO(size_a,vector<double>(size_b,0));
@@ -187,6 +155,7 @@ int main(int argc, const char * argv[])
             // try adding profile info (mode 0 = with; mode 1 = without)
             int start_mode = 1; if(use_prf == true){start_mode = 0;}
             for(int mode = start_mode; mode <= 1; mode++){
+                
                 // try different gap_ext penalities!
                 for(int g_e = 0; g_e < gap_e_steps.size(); g_e++){double gap_e = gap_open/gap_e_steps[g_e];
                     
@@ -218,16 +187,12 @@ int main(int argc, const char * argv[])
         }
     }
     int aln_len = 0;
-    vec_int b2a_max(size_b,-1);
     // compute the expected score over the aligned region:
     for(int ai = 0; ai < size_a; ai++){
         int bi = a2b_max[ai];
-        if(bi != -1)
-        {
-            b2a_max[bi] = ai;
-            aln_len++;
-        }
+        if(bi != -1){aln_len++;}
     }
+    
     // Report the BEST score
     int ai = 0; while(a2b_max[ai] == -1){ai++;}
     int aj = size_a - 1; while(a2b_max[aj] == -1){aj--;}
@@ -391,6 +356,43 @@ void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
             }
         }
     }
+}
+void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b)
+{
+    int size_a = prf_a.size();
+    int size_b = prf_b.size();
+    
+    // compute profile similarity
+    P_SCO.resize(size_a,vector<double>(size_b,0));
+    vec_double pb(20,0); int prf_size = prf_a[0].size();
+    double pb_size = 0;
+    for(int ai = 0; ai < size_a; ai++)
+    {
+        if(aa_a[ai] != 'X')
+        {
+            for(int p=0; p < prf_size; p++){pb[p] += prf_a[ai][p];}
+            pb_size += 1;
+        }
+    }
+    for(int bi = 0; bi < size_b; bi++)
+    {
+        if(aa_b[bi] != 'X')
+        {
+            for(int p=0; p < prf_size; p++){pb[p] += prf_b[bi][p];}
+            pb_size += 1;
+        }
+    }
+    for (int i=0; i < size_a; i++){
+        for (int j=0; j < size_b; j++){
+            if(aa_a[i] == 'X' or aa_b[j] == 'X'){P_SCO[i][j] = 0;}
+            else{
+                double tmp_sco = 0;
+                for(int p=0; p < prf_size; p++){tmp_sco += (prf_a[i][p]*prf_b[j][p])/(pb[p]/pb_size);}
+                P_SCO[i][j] = log2(tmp_sco)/5;
+            }
+        }
+    }
+    
 }
 vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
                 vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b)
