@@ -8,16 +8,22 @@ $ g++ -O3 -std=c++0x -o map_align main.cpp
 
 ### Usage
 ```
------------------------------------------------------
-MAP_ALIGN                      
------------------------------------------------------
--a      contact map A             [REQUIRED]
--b      contact map B             [REQUIRED]
--prf    use sequence profile      [Default=0]
--gap_o  gap opening penalty       [Default=-1]
--gap_e  gap extension penalty     [Default=-0.01]
--ss_cut seq seperation cutoff     [Default=3]
------------------------------------------------------
+------------------------------------------------------
+MAP_ALIGN
+------------------------------------------------------
+-a         contact map A            [REQUIRED]
+-b         contact map B            [REQUIRED]
+-gap_o     gap opening penalty      [Default=-1]
+-gap_e     gap extension penalty    [Default=-0.01]
+-ss_cut    seq seperation cutoff    [Default=3]
+-iter      number of iterations     [Default=20]
+-silent
+------------------------------------------------------
+Experimental features
+------------------------------------------------------
+-prf       add sequence profile
+-prf_w     profile weight (if used) [Default=1]
+------------------------------------------------------
 ```
 ```sh
 $ map_align -a A.map -b B.map

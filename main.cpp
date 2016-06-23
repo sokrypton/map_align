@@ -38,23 +38,16 @@ inline bool exists (const std::string& name) {
 
 double gaussian(double mean, double stdev, double x){return exp_fast(-pow((x - mean),2)/(2*(pow(stdev,2))));}
 
-vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx);
+vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx, mtx_double &p_sco_mtx);
 double Falign(double *sco_mtx, int rows, int cols);
 
 double sepw(double sep){if(sep <= 4){return 0.50;}else if(sep == 5){return 0.75;}else{return 1.00;}}
 
 void ini_SCO(double sep_x, double sep_y, mtx_double &SCO, vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b);
-void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b);
-vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO, vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b);
-void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b);
+void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b);
+vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO, mtx_double &P_SCO, vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b);
+void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO);
 
-void add_mtx (mtx_double &A, mtx_double &B){
-    for(int i = 0; i < A.size(); i++){
-        for(int j = 0; j < A[i].size(); j++){
-            A[i][j] += B[i][j];
-        }
-    }
-}
 void load_data (string file, int ss_cutoff, mtx_double &mtx, vec_int &vec_div, vec_int &vec, mtx_int &vec_i, mtx_double &prf, vec_char &aa, vec_char &ss);
 int main(int argc, const char * argv[])
 {
@@ -62,9 +55,14 @@ int main(int argc, const char * argv[])
     string file_a;
     string file_b;
     bool use_prf = false;
+    double prf_w = 1.00;
     double gap_open = -1.00;
     double gap_ext = -0.01;
     int ss_cutoff = 3;
+    int iter = 20;
+    
+    bool silent = false;
+    
     ////////////////////////////////////////////////////////////////////////////////
     for (int a = 1; a < argc; a++)
     {
@@ -74,37 +72,50 @@ int main(int argc, const char * argv[])
                  if(arg == "-a"){file_a = argv[a+1]; a++;}
             else if(arg == "-b"){file_b = argv[a+1]; a++;}
             else if(arg == "-prf"){use_prf = true;}
+            else if(arg == "-prf_w"){prf_w = stod(argv[a+1]); a++;}
             else if(arg == "-gap_o"){gap_open = stod(argv[a+1]); a++;}
             else if(arg == "-gap_e"){gap_ext  = stod(argv[a+1]); a++;}
             else if(arg == "-ss_cut"){ss_cutoff  = stoi(argv[a+1]); a++;}
+            else if(arg == "-iter"){iter  = stoi(argv[a+1]); a++;}
+            else if(arg == "-silent"){silent = true;}
         }
     }
     if(file_a.empty() || file_b.empty() || exists(file_a) == 0 || exists(file_b) == 0)
     {
-        cout << "-----------------------------------------------------\n";
-        cout << "                      MAP_ALIGN                      \n";
-        cout << "-----------------------------------------------------\n";
-        cout << "  -a      contact map A             [REQUIRED]\n";
-        cout << "  -b      contact map B             [REQUIRED]\n";
-        cout << "  -prf    use sequence profile      [Default=" << use_prf   << "]\n";
-        cout << "  -gap_o  gap opening penalty       [Default=" << gap_open  << "]\n";
-        cout << "  -gap_e  gap extension penalty     [Default=" << gap_ext   << "]\n";
-        cout << "  -ss_cut seq seperation cutoff     [Default=" << ss_cutoff << "]\n";
-        cout << "-----------------------------------------------------\n";
+        cout << "----------------------------------------------------------\n";
+        cout << "                          MAP_ALIGN                       \n";
+        cout << "----------------------------------------------------------\n";
+        cout << "  -a         contact map A                [REQUIRED]\n";
+        cout << "  -b         contact map B                [REQUIRED]\n";
+        cout << "  -gap_o     gap opening penalty          [Default=" << gap_open  << "]\n";
+        cout << "  -gap_e     gap extension penalty        [Default=" << gap_ext   << "]\n";
+        cout << "  -ss_cut    seq seperation cutoff        [Default=" << ss_cutoff << "]\n";
+        cout << "  -iter      number of iterations         [Default=" << iter << "]\n";
+        cout << "  -silent    \n";
+        cout << "----------------------------------------------------------\n";
+        cout << " Experimental features\n";
+        cout << "----------------------------------------------------------\n";
+        cout << "  -prf       add sequence profile\n";
+        cout << "  -prf_w     profile weight (if used)     [Default=" << prf_w << "]\n";
+        cout << "----------------------------------------------------------\n";
         exit(1);
     }
-    else
+    else if(silent == false)
     {
-        cout << "----------------------------------------------------\n";
-        cout << "                      MAP_ALIGN                     \n";
-        cout << "----------------------------------------------------\n";
-        cout << "  -a      " << file_a    << endl;
-        cout << "  -b      " << file_b    << endl;
-        cout << "  -prf    " << use_prf   << endl;
-        cout << "  -gap_o  " << gap_open  << endl;
-        cout << "  -gap_e  " << gap_ext   << endl;
-        cout << "  -ss_cut " << ss_cutoff << endl;
-        cout << "----------------------------------------------------\n";
+        cout << "OPT ----------------------------------------------------------\n";
+        cout << "OPT                           MAP_ALIGN                       \n";
+        cout << "OPT ----------------------------------------------------------\n";
+        cout << "OPT   -a       " << file_a    << endl;
+        cout << "OPT   -b       " << file_b    << endl;
+        cout << "OPT   -gap_o   " << gap_open  << endl;
+        cout << "OPT   -gap_e   " << gap_ext   << endl;
+        cout << "OPT   -ss_cut  " << ss_cutoff << endl;
+        cout << "OPT   -iter    " << iter << endl;
+        cout << "OPT   -silent  " << silent << endl;
+        cout << "OPT ----------------------------------------------------------\n";
+        cout << "OPT   -prf     " << use_prf   << endl;
+        cout << "OPT   -prf_w   " << prf_w   << endl;
+        cout << "OPT ----------------------------------------------------------\n";
     }
     ////////////////////////////////////////////////////////////////////////////////
     
@@ -118,16 +129,16 @@ int main(int argc, const char * argv[])
     load_data(file_b,ss_cutoff,mtx_b,vec_b_div,vec_b,vec_b_i,prf_b,aa_b,ss_b);
     int size_b = mtx_b.size();
     
-    mtx_double P_SCO;if(use_prf == true){ini_prf_SCO(P_SCO,prf_a,aa_a,prf_b,aa_b);}
+    mtx_double P_SCO;if(use_prf == true){ini_prf_SCO(P_SCO,prf_w,prf_a,aa_a,prf_b,aa_b);}
     
     // keeping track of the BEST alignment
     
     int max_sep_x = 0;
     int max_sep_y = 0;
-    int max_mode = 0;
     int max_g_e = 0;
     double con_max = -1;
     double gap_max = 0;
+    double prf_max = 0;
     vec_int a2b_max;
     
     vec_double gap_e_steps {5,10,100,1000};
@@ -143,48 +154,59 @@ int main(int argc, const char * argv[])
             // Get initial score matrix
             mtx_double C_SCO(size_a,vector<double>(size_b,0));
             ini_SCO(sep_x,sep_y,C_SCO,vec_a_div,vec_b_div,vec_a,vec_b,vec_a_i,vec_b_i,mtx_a,mtx_b);
-            
-            // try adding profile info (mode 0 = with; mode 1 = without)
-            int start_mode = 1; if(use_prf == true){start_mode = 0;}
-            for(int mode = start_mode; mode <= 1; mode++){
+
+            // try different gap_ext penalities!
+            for(int g_e = 0; g_e < gap_e_steps.size(); g_e++){double gap_e = gap_open/gap_e_steps[g_e];
                 
-                // try different gap_ext penalities!
-                for(int g_e = 0; g_e < gap_e_steps.size(); g_e++){double gap_e = gap_open/gap_e_steps[g_e];
-                    
-                    // restart SCO matrix
-                    mtx_double SCO = C_SCO;if(mode == 0){add_mtx(SCO,P_SCO);}
-                    
-                    // get alignment (a2b mapping)
-                    vec_int a2b = mod_SCO(20,gap_open,gap_e,SCO,vec_a_div,vec_b_div,vec_a,vec_b,vec_a_i,vec_b_i,mtx_a,mtx_b);
-                    
-                    // compute number of contacts/gaps made
-                    double con_sco = 0;double gap_sco = 0; chk(gap_open,gap_ext,con_sco,gap_sco,vec_a_div,vec_a_i,mtx_a,mtx_b,a2b);
-                    
-                    // print info
-                    cout << "TMP " << " " << sep_x << "_" << sep_y << "_" << mode << "_" << g_e << " " << con_sco << " " << gap_sco << " " << con_sco+gap_sco << endl;
-                    
-                    // save if BEST!
-                    if(con_sco+gap_sco > con_max+gap_max){
-                        max_sep_x = sep_x;
-                        max_sep_y = sep_y;
-                        max_g_e = g_e;
-                        max_mode = mode;
-                        con_max = con_sco;
-                        gap_max = gap_sco;
-                        a2b_max = a2b;
+                // restart SCO matrix
+                mtx_double SCO = C_SCO;
+
+                // get alignment (a2b mapping) after X iterations
+                vec_int a2b = mod_SCO(iter,gap_open,gap_e,SCO,P_SCO,vec_a_div,vec_b_div,vec_a,vec_b,vec_a_i,vec_b_i,mtx_a,mtx_b);
+                
+                // compute number of contacts/gaps made
+                double con_sco = 0;
+                double gap_sco = 0;
+                double prf_sco = 0;
+                chk(gap_open,gap_ext,con_sco,gap_sco,prf_sco,vec_a_div,vec_a_i,mtx_a,mtx_b,a2b,P_SCO);
+                
+                // print info
+                if(silent == false){
+                    if(use_prf == true){
+                        cout << "TMP\t" << sep_x << "_" << sep_y << "_" << g_e << "\t" << con_sco << "\t" << gap_sco << "\t" << prf_sco << "\t" << con_sco+gap_sco+prf_sco << endl;
                     }
+                    else{
+                        cout << "TMP\t" << sep_x << "_" << sep_y << "_" << g_e << "\t" << con_sco << "\t" << gap_sco << "\t" << con_sco+gap_sco << endl;
+                    }
+                }
+                
+                // save if BEST!
+                if(con_sco+gap_sco+prf_sco > con_max+gap_max+prf_max){
+                    max_sep_x = sep_x;
+                    max_sep_y = sep_y;
+                    max_g_e = g_e;
+                    con_max = con_sco;
+                    gap_max = gap_sco;
+                    prf_max = prf_sco;
+                    a2b_max = a2b;
                 }
             }
         }
     }
     int aln_len = 0;for(int ai = 0; ai < size_a; ai++){int bi = a2b_max[ai];if(bi != -1){aln_len++;}}
     // Report the BEST score
-    cout << "MAX " << max_sep_x << "_" << max_sep_y << "_" << max_mode << "_" << max_g_e << " " << file_a << " " << file_b << " " << con_max+gap_max << " " << aln_len;
-    for(int a = 0; a < size_a; a++){int b = a2b_max[a];if(b != -1){cout << " " << a << ":" << b;}}
+    cout << "MAX " << max_sep_x << "_" << max_sep_y << "_" << max_g_e << "\t" << file_a << "\t" << file_b;
+    if(use_prf == true){
+        cout << "\t" << con_max << "\t" << gap_max << "\t" << prf_max << "\t" << con_max+gap_max+prf_max << "\t" << aln_len;
+    }
+    else{
+        cout << "\t" << con_max << "\t" << gap_max << "\t" << con_max+gap_max << "\t" << aln_len;
+    }
+    for(int a = 0; a < size_a; a++){int b = a2b_max[a];if(b != -1){cout << "\t" << a << ":" << b;}}
     cout << endl;
     return 0;
 }
-vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx)
+vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx, mtx_double &p_sco_mtx)
 {
     // LOCAL_ALIGN
     // Start	0
@@ -196,6 +218,8 @@ vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx)
     int rows = sco_mtx.size();
     int cols = sco_mtx[0].size();
     
+    bool add_prf = false;if(p_sco_mtx.size() == rows){add_prf = true;}
+    
     vec_int a2b(rows,-1);
     
     mtx_double sco(rows+1,vector<double>(cols+1,0));
@@ -205,7 +229,7 @@ vec_int align(double gap_o, double gap_e, mtx_double &sco_mtx)
     for (int i = 1; i <= rows; i++){
         for (int j = 1; j <= cols; j++){
             
-            double A = sco[i-1][j-1] + sco_mtx[i-1][j-1];
+            double A = sco[i-1][j-1] + sco_mtx[i-1][j-1]; if(add_prf == true){A += p_sco_mtx[i-1][j-1];}
             double D = sco[i-1][j];
             double R = sco[i][j-1];
             if(label[i-1][j] == 1){D += gap_o;}else{D += gap_e;}
@@ -334,7 +358,7 @@ void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
         }
     }
 }
-void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b)
+void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b)
 {
     int size_a = prf_a.size();
     int size_b = prf_b.size();
@@ -365,23 +389,23 @@ void ini_prf_SCO(mtx_double &P_SCO, mtx_double &prf_a, vec_char &aa_a, mtx_doubl
             else{
                 double tmp_sco = 0;
                 for(int p=0; p < prf_size; p++){tmp_sco += (prf_a[i][p]*prf_b[j][p])/(pb[p]/pb_size);}
-                P_SCO[i][j] = log2(tmp_sco)/5;
+                P_SCO[i][j] = log2(tmp_sco)/5 * prf_w;
             }
         }
     }
     
 }
 // MODIFY SCORE MATRIX: function for modifying the initial similarity matrix
-vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
+vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO, mtx_double &P_SCO,
                 vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b)
 {
     // iterate
     vec_int a2b_tmp;
-    for(int it=1; it < do_it; it++)
+    for(int it=0; it < do_it; it++)
     {
         // align
-        a2b_tmp = align(gap_o,gap_e,SCO);
-        double IT = (double)it;
+        a2b_tmp = align(gap_o,gap_e,SCO,P_SCO);
+        double IT = (double)it + 1;
         double s1 = (IT/(IT+1)); double s2 = (1/(IT+1));
         for(int a=0; a < vec_a.size(); a++){ // go through columns (vec_a) in map_a that has contacts
             int ai = vec_a[a];
@@ -405,15 +429,18 @@ vec_int mod_SCO(double do_it, double gap_o, double gap_e, mtx_double &SCO,
     return(a2b_tmp);
 }
 // CHK: check number of contact and gaps made and compute alignment score
-void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b)
+void chk (double gap_o, double gap_e, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO)
 {
     
     int size_a = mtx_a.size();
+    bool use_prf = false; if(P_SCO.size() == size_a){use_prf = true;}
+    
     // compute number of contacts/gaps made
     int a = 0;int b = 0;
     for(int ai = 0; ai < size_a; ai++){
         int bi = a2b[ai];
         if(bi != -1){
+            if(use_prf == true){prf_sco += P_SCO[ai][bi];}
             if(a > 0){ // compute number of gaps
                 double gap = ((ai-a)-1) + ((bi-b)-1);
                 if(gap > 0){gap_sco += (gap_o + gap_e*(gap-1))/2;}
