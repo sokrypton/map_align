@@ -1,6 +1,8 @@
 # _map_align_
 _map_align_ takes two contact maps and returns an alignment that attempts to maximize the number of overlapping contacts while minimizing the number of gaps.
 
+![example image](https://raw.githubusercontent.com/sokrypton/map_align/master/map_align_fig.png)
+
 ### Installation
 ```sh
 $ g++ -O3 -std=c++0x -o map_align main.cpp
