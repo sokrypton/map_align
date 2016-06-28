@@ -20,6 +20,7 @@ typedef vector<vector<double> > mtx_double;
 typedef vector<int> vec_int;
 typedef vector<double> vec_double;
 typedef vector<char> vec_char;
+typedef vector<bool> vec_bool;
 
 double exp_fast(double x){
     // WARNING fails if |x| > 1024
@@ -58,16 +59,20 @@ vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e
 
 void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO);
 
-void load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, vec_int &vec, mtx_int &vec_i, mtx_double &prf, vec_char &aa, vec_char &ss);
+vec_int load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, vec_int &vec, mtx_int &vec_i, mtx_double &prf, vec_char &aa, vec_char &ss, vec_bool &range);
 int main(int argc, const char * argv[])
 {
-    
     string file_a;
     string file_b;
-    bool use_prf = false;
+    
+    vec_bool range_a;
+    vec_bool range_b;
+    
     bool use_gap_ss = false;
     double gap_ss_w = 2;
-    double prf_w = 1.00;
+    bool use_prf = false;
+    double prf_w = 1;
+    
     double gap_open = -1;
     double gap_ext = -0.01;
     int sep_cutoff = 3;
@@ -83,6 +88,30 @@ int main(int argc, const char * argv[])
         {
                  if(arg == "-a"){file_a = argv[a+1]; a++;}
             else if(arg == "-b"){file_b = argv[a+1]; a++;}
+            else if(arg == "-range_a"){
+                while(a+1 < argc && argv[a+1][0] != '-')
+                {
+                    string r = argv[a+1];
+                    int i = stoi(r.substr(0,r.find('-')));
+                    int j = stoi(r.substr(r.find('-')+1));
+                    
+                    if(j+1 > range_a.size()){range_a.resize(j+1,0);}
+                    for(int n = i; n <= j; n++){range_a[n] = 1;}
+                    a++;
+                }
+            }
+			else if(arg == "-range_b"){
+                while(a+1 < argc && argv[a+1][0] != '-')
+                {
+                    string r = argv[a+1];
+                    int i = stoi(r.substr(0,r.find('-')));
+                    int j = stoi(r.substr(r.find('-')+1));
+                    
+                    if(j+1 > range_b.size()){range_b.resize(j+1,0);}
+                    for(int n = i; n <= j; n++){range_b[n] = 1;}
+                    a++;
+                }
+            }
             else if(arg == "-use_prf"){use_prf = true;}
             else if(arg == "-prf_w"){prf_w = stod(argv[a+1]); a++;}
             else if(arg == "-use_gap_ss"){use_gap_ss = true;}
@@ -107,6 +136,11 @@ int main(int argc, const char * argv[])
         cout << "  -iter          number of iterations        [Default=" << iter << "]\n";
         cout << "  -silent        \n";
         cout << "-------------------------------------------------------------------\n";
+        cout << " Advanced options\n";
+        cout << "-------------------------------------------------------------------\n";
+		cout << "  -range_a       trim map A to specified range(s) (eg. 0-20 50-100)\n";
+		cout << "  -range_b       trim map B to specified range(s)\n";
+        cout << "-------------------------------------------------------------------\n";
         cout << " Experimental features\n";
         cout << "-------------------------------------------------------------------\n";
         cout << "  -use_gap_ss    penalize gaps at secondary structure elements(SSE)\n";
@@ -125,7 +159,7 @@ int main(int argc, const char * argv[])
         cout << "OPT   -b          " << file_b       << endl;
         cout << "OPT   -gap_o      " << gap_open     << endl;
         cout << "OPT   -gap_e      " << gap_ext      << endl;
-        cout << "OPT   -sep_cut    " << sep_cutoff  << endl;
+        cout << "OPT   -sep_cut    " << sep_cutoff   << endl;
         cout << "OPT   -iter       " << iter         << endl;
         cout << "OPT   -silent     " << silent       << endl;
         cout << "OPT -------------------------------------------------------------------\n";
@@ -143,26 +177,23 @@ int main(int argc, const char * argv[])
     
     // load data from contact map A
     mtx_double mtx_a; vec_int vec_a; vec_int vec_a_div; mtx_int vec_a_i; mtx_double prf_a; vec_char aa_a; vec_char ss_a;
-    load_data(file_a,sep_cutoff,mtx_a,vec_a_div,vec_a,vec_a_i,prf_a,aa_a,ss_a);
+    vec_int m2n_a = load_data(file_a,sep_cutoff,mtx_a,vec_a_div,vec_a,vec_a_i,prf_a,aa_a,ss_a,range_a);
     int size_a = mtx_a.size();
-    
     
     vec_double gap_a(size_a,gap_open);if(use_gap_ss == true){mod_gap(gap_a,ss_a,gap_ss_w);}
     
     // load data from contact map B
     mtx_double mtx_b; vec_int vec_b; vec_int vec_b_div; mtx_int vec_b_i; mtx_double prf_b; vec_char aa_b; vec_char ss_b;
-    load_data(file_b,sep_cutoff,mtx_b,vec_b_div,vec_b,vec_b_i,prf_b,aa_b,ss_b);
+    vec_int m2n_b = load_data(file_b,sep_cutoff,mtx_b,vec_b_div,vec_b,vec_b_i,prf_b,aa_b,ss_b,range_b);
     int size_b = mtx_b.size();
-    
+
     vec_double gap_b(size_b,gap_open);if(use_gap_ss == true){mod_gap(gap_b,ss_b,gap_ss_w);}
     
-    //cout << gap_a[0] << " " << gap_a[size_a-1] << " " << gap_b[0] << " " << gap_b[size_b-1] << endl;
-    //exit(0);
-    
+	// if use_prf on, initialize profile SCO matrix
     mtx_double P_SCO;if(use_prf == true){ini_prf_SCO(P_SCO,prf_w,prf_a,aa_a,prf_b,aa_b);}
     
+	// STARTING ALIGNMENT!!!
     // keeping track of the BEST alignment
-    
     int max_sep_x = 0;
     int max_sep_y = 0;
     int max_g_e = 0;
@@ -229,13 +260,12 @@ int main(int argc, const char * argv[])
     if(use_prf == true){cout << "\t" << con_max << "\t" << gap_max << "\t" << prf_max << "\t" << con_max+gap_max+prf_max << "\t" << aln_len;}
     else{cout << "\t" << con_max << "\t" << gap_max << "\t" << con_max+gap_max << "\t" << aln_len;}
     
-    for(int a = 0; a < size_a; a++){int b = a2b_max[a];if(b != -1){cout << "\t" << a << ":" << b;}}
+    for(int a = 0; a < size_a; a++){int b = a2b_max[a];if(b != -1){cout << "\t" << m2n_a[a] << ":" << m2n_b[b];}}
     cout << endl;
     return 0;
 }
 
-vec_int align(vec_double &gap_a, vec_double &gap_b, double &gap_e, mtx_double &sco_mtx, mtx_double &p_sco_mtx)
-{
+vec_int align(vec_double &gap_a, vec_double &gap_b, double &gap_e, mtx_double &sco_mtx, mtx_double &p_sco_mtx){
     // LOCAL_ALIGN
     // Start	0
     // [A]lign	1
@@ -281,8 +311,7 @@ vec_int align(vec_double &gap_a, vec_double &gap_b, double &gap_e, mtx_double &s
     }
     return(a2b);
 }
-double Falign(double *sco_mtx, int rows, int cols)
-{
+double Falign(double *sco_mtx, int rows, int cols){
     double max_sco = 0;
     double sco[rows+1][cols+1]; memset(sco, 0, sizeof(sco));
     for (int i = 1; i <= rows; i++){
@@ -299,8 +328,10 @@ double Falign(double *sco_mtx, int rows, int cols)
     }
     return(max_sco);
 }
-void load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, vec_int &vec, mtx_int &vec_i, mtx_double &prf, vec_char &aa, vec_char &ss)
+vec_int load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, vec_int &vec, mtx_int &vec_i, mtx_double &prf, vec_char &aa, vec_char &ss, vec_bool &range)
 {
+    vec_int n2m;
+    vec_int m2n;
     string line;
     ifstream in(file.c_str());
     while(getline(in,line)){
@@ -310,27 +341,45 @@ void load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, 
         if(label == "LEN" or label == "SIZE"){
             int size; is >> size;
             
-            mtx.resize(size,vector<double>(size,0));
-            prf.resize(size,vector<double>(20,0));
-            aa.resize(size,'X');
-            ss.resize(size,'X');
+			if(range.size() > 0){range.resize(size,0);} // if range previously defined fill rest with "0"
+			else{range.resize(size,1);} // else set all to "1"
+            
+            int m = 0;n2m.resize(size,-1);
+            for(int n = 0; n < size; n++){
+                if(range[n] == 1){
+                    n2m[n] = m;
+                    m2n.push_back(n);
+                    m++;
+                }
+            }
+			
+            mtx.resize(m,vector<double>(m,0));
+            prf.resize(m,vector<double>(20,0));
+            aa.resize(m,'X');
+            ss.resize(m,'X');
         }
         else if(label == "CON"){
-            int i, j; double sco; is >> i >> j;
-            if(abs(j-i) >= sep_cutoff){
-                if(is >> sco){}else{sco = 1;}
-                mtx[i][j] = sco;
-                mtx[j][i] = sco;
+            int i, j; is >> i >> j;
+			if(range[i] == 1 and range[j] == 1){
+				double sco;
+				if(abs(j-i) >= sep_cutoff){
+					if(is >> sco){}else{sco = 1;}
+					mtx[n2m[i]][n2m[j]] = sco;
+					mtx[n2m[j]][n2m[i]] = sco;
+				}
             }
         }
         else if(label == "PRF"){
             int i; is >> i;
-            char tmp;
-            is >> tmp; aa[i] = tmp;
-            is >> tmp; ss[i] = tmp;
-            double val;
-            int j = 0;
-            while(is >> val){prf[i][j] = val; j++;}
+			if(range[i] == 1)
+			{
+				char tmp;
+				is >> tmp; aa[n2m[i]] = tmp;
+				is >> tmp; ss[n2m[i]] = tmp;
+				double val;
+				int j = 0;
+				while(is >> val){prf[n2m[i]][j] = val;j++;}
+			}
         }
     }
     in.close();
@@ -347,11 +396,11 @@ void load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, 
         }
         if(vec_i[i].size() > 0){vec.push_back(i);}
     }
+    return m2n;
 }
 // INITIATE SCORE MATRIX: function for populating the initial similarity matrix
 void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
-             vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b)
-{
+             vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a,vec_int &vec_b,mtx_int &vec_a_i,mtx_int &vec_b_i,mtx_double &mtx_a,mtx_double &mtx_b){
     // Get initial score matrix
     for(int i=0; i < vec_a.size(); i++){ // go through columns (vec_a) in map_a that has contacts
         int ai = vec_a[i];
@@ -384,8 +433,7 @@ void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
         }
     }
 }
-void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b)
-{
+void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b){
     int size_a = prf_a.size();
     int size_b = prf_b.size();
     
@@ -425,8 +473,7 @@ void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &
 
 // MODIFY SCORE MATRIX: function for modifying the initial similarity matrix
 vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e, mtx_double &SCO, mtx_double &P_SCO,
-                vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b)
-{
+                vec_int &vec_a_div,vec_int &vec_b_div,vec_int &vec_a, vec_int &vec_b,mtx_int &vec_a_i, mtx_int &vec_b_i,mtx_double &mtx_a, mtx_double &mtx_b){
     // iterate
     vec_int a2b_tmp;
     for(int it=0; it < do_it; it++)
@@ -457,8 +504,7 @@ vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e
     return(a2b_tmp);
 }
 // CHK: check number of contact and gaps made and compute alignment score
-void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO)
-{
+void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO){
     
     int size_a = mtx_a.size();
     bool use_prf = false; if(P_SCO.size() == size_a){use_prf = true;}
