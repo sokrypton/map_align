@@ -21,6 +21,7 @@ typedef vector<int> vec_int;
 typedef vector<double> vec_double;
 typedef vector<char> vec_char;
 typedef vector<bool> vec_bool;
+typedef vector<string> vec_string;
 
 double exp_fast(double x){
     // WARNING fails if |x| > 1024
@@ -60,126 +61,38 @@ vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e
 void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO);
 
 vec_int load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_div, vec_int &vec, mtx_int &vec_i, mtx_double &prf, vec_char &aa, vec_char &ss, vec_bool &range);
+
+void get_opt(vec_string opt, string &file_a, string &file_b, vec_bool &range_a, vec_bool &range_b, bool &use_gap_ss, double &gap_ss_w, bool &use_prf, double &prf_w, double &gap_open, double &gap_ext, int &sep_cutoff, int &iter, bool &silent);
+
 int main(int argc, const char * argv[])
 {
+    // options
     string file_a;
     string file_b;
-    
     vec_bool range_a;
     vec_bool range_b;
-    
     bool use_gap_ss = false;
     double gap_ss_w = 2;
     bool use_prf = false;
     double prf_w = 1;
-    
     double gap_open = -1;
     double gap_ext = -0.01;
     int sep_cutoff = 3;
     int iter = 20;
-    
     bool silent = false;
     
-    ////////////////////////////////////////////////////////////////////////////////
-    for (int a = 1; a < argc; a++)
-    {
-        string arg = argv[a];
-        if (arg.substr(0,1) == "-")
-        {
-                 if(arg == "-a"){file_a = argv[a+1]; a++;}
-            else if(arg == "-b"){file_b = argv[a+1]; a++;}
-            else if(arg == "-range_a"){
-                while(a+1 < argc && argv[a+1][0] != '-')
-                {
-                    string r = argv[a+1];
-                    int i = stoi(r.substr(0,r.find('-')));
-                    int j = stoi(r.substr(r.find('-')+1));
-                    
-                    if(j+1 > range_a.size()){range_a.resize(j+1,0);}
-                    for(int n = i; n <= j; n++){range_a[n] = 1;}
-                    a++;
-                }
-            }
-			else if(arg == "-range_b"){
-                while(a+1 < argc && argv[a+1][0] != '-')
-                {
-                    string r = argv[a+1];
-                    int i = stoi(r.substr(0,r.find('-')));
-                    int j = stoi(r.substr(r.find('-')+1));
-                    
-                    if(j+1 > range_b.size()){range_b.resize(j+1,0);}
-                    for(int n = i; n <= j; n++){range_b[n] = 1;}
-                    a++;
-                }
-            }
-            else if(arg == "-use_prf"){use_prf = true;}
-            else if(arg == "-prf_w"){prf_w = stod(argv[a+1]); a++;}
-            else if(arg == "-use_gap_ss"){use_gap_ss = true;}
-            else if(arg == "-gap_ss_w"){gap_ss_w = stod(argv[a+1]); a++;}
-            else if(arg == "-gap_o"){gap_open = stod(argv[a+1]); a++;}
-            else if(arg == "-gap_e"){gap_ext  = stod(argv[a+1]); a++;}
-            else if(arg == "-sep_cut"){sep_cutoff  = stoi(argv[a+1]); a++;}
-            else if(arg == "-iter"){iter  = stoi(argv[a+1]); a++;}
-            else if(arg == "-silent"){silent = true;}
-        }
-    }
-    if(file_a.empty() || file_b.empty() || exists(file_a) == 0 || exists(file_b) == 0)
-    {
-        cout << "-------------------------------------------------------------------\n";
-        cout << "                          MAP_ALIGN                                \n";
-        cout << "-------------------------------------------------------------------\n";
-        cout << "  -a             contact map A               [REQUIRED]\n";
-        cout << "  -b             contact map B               [REQUIRED]\n";
-        cout << "  -gap_o         gap opening penalty         [Default=" << gap_open << "]\n";
-        cout << "  -gap_e         gap extension penalty       [Default=" << gap_ext << "]\n";
-        cout << "  -sep_cut       seq seperation cutoff       [Default=" << sep_cutoff << "]\n";
-        cout << "  -iter          number of iterations        [Default=" << iter << "]\n";
-        cout << "  -silent        \n";
-        cout << "-------------------------------------------------------------------\n";
-        cout << " Advanced options\n";
-        cout << "-------------------------------------------------------------------\n";
-		cout << "  -range_a       trim map A to specified range(s) (eg. 0-20 50-100)\n";
-		cout << "  -range_b       trim map B to specified range(s)\n";
-        cout << "-------------------------------------------------------------------\n";
-        cout << " Experimental features\n";
-        cout << "-------------------------------------------------------------------\n";
-        cout << "  -use_gap_ss    penalize gaps at secondary structure elements(SSE)\n";
-        cout << "  -gap_ss_w      gap penality weight at SSE  [Default=" << gap_ss_w << "]\n";
-        cout << "  -use_prf       use sequence profile\n";
-        cout << "  -prf_w         profile weight              [Default=" << prf_w << "]\n";
-        cout << "-------------------------------------------------------------------\n";
-        exit(1);
-    }
-    else if(silent == false)
-    {
-        cout << "OPT -------------------------------------------------------------------\n";
-        cout << "OPT                           MAP_ALIGN                                \n";
-        cout << "OPT -------------------------------------------------------------------\n";
-        cout << "OPT   -a          " << file_a       << endl;
-        cout << "OPT   -b          " << file_b       << endl;
-        cout << "OPT   -gap_o      " << gap_open     << endl;
-        cout << "OPT   -gap_e      " << gap_ext      << endl;
-        cout << "OPT   -sep_cut    " << sep_cutoff   << endl;
-        cout << "OPT   -iter       " << iter         << endl;
-        cout << "OPT   -silent     " << silent       << endl;
-        cout << "OPT -------------------------------------------------------------------\n";
-        cout << "OPT   -use_gap_ss  " << use_gap_ss  << endl; if(use_gap_ss == true){cout << "OPT   -gap_ss_w    " << gap_ss_w << endl;}
-        cout << "OPT   -use_prf     " << use_prf     << endl; if(use_prf    == true){cout << "OPT   -prf_w       " << prf_w    << endl;}
-        cout << "OPT -------------------------------------------------------------------\n";
-    }
-    if(gap_open > 0 || gap_ext > 0)
-    {
-        cout << "ERROR: gap penality should be < 0\n";
-        exit(1);
-    }
+    // parse input arguments
+    vec_string opt;for (int a = 1; a < argc; a++){string arg = argv[a];opt.push_back(arg.c_str());}
+    get_opt(opt, file_a, file_b, range_a, range_b, use_gap_ss, gap_ss_w, use_prf, prf_w, gap_open, gap_ext, sep_cutoff, iter, silent);
+    
     double gap_ext_w = fabs(gap_ext)/fabs(gap_open);
-    ////////////////////////////////////////////////////////////////////////////////
     
     // load data from contact map A
     mtx_double mtx_a; vec_int vec_a; vec_int vec_a_div; mtx_int vec_a_i; mtx_double prf_a; vec_char aa_a; vec_char ss_a;
     vec_int m2n_a = load_data(file_a,sep_cutoff,mtx_a,vec_a_div,vec_a,vec_a_i,prf_a,aa_a,ss_a,range_a);
     int size_a = mtx_a.size();
     
+    // if use_gap_ss on, modify the gap penalities
     vec_double gap_a(size_a,gap_open);if(use_gap_ss == true){mod_gap(gap_a,ss_a,gap_ss_w);}
     
     // load data from contact map B
@@ -187,6 +100,7 @@ int main(int argc, const char * argv[])
     vec_int m2n_b = load_data(file_b,sep_cutoff,mtx_b,vec_b_div,vec_b,vec_b_i,prf_b,aa_b,ss_b,range_b);
     int size_b = mtx_b.size();
 
+    // if use_gap_ss on, modify the gap penalities
     vec_double gap_b(size_b,gap_open);if(use_gap_ss == true){mod_gap(gap_b,ss_b,gap_ss_w);}
     
 	// if use_prf on, initialize profile SCO matrix
@@ -253,13 +167,11 @@ int main(int argc, const char * argv[])
             }
         }
     }
-    int aln_len = 0;for(int ai = 0; ai < size_a; ai++){int bi = a2b_max[ai];if(bi != -1){aln_len++;}}
     // Report the BEST score
+    int aln_len = 0;for(int ai = 0; ai < size_a; ai++){int bi = a2b_max[ai];if(bi != -1){aln_len++;}}
     cout << "MAX " << max_sep_x << "_" << max_sep_y << "_" << max_g_e << "\t" << file_a << "\t" << file_b;
-    
     if(use_prf == true){cout << "\t" << con_max << "\t" << gap_max << "\t" << prf_max << "\t" << con_max+gap_max+prf_max << "\t" << aln_len;}
     else{cout << "\t" << con_max << "\t" << gap_max << "\t" << con_max+gap_max << "\t" << aln_len;}
-    
     for(int a = 0; a < size_a; a++){int b = a2b_max[a];if(b != -1){cout << "\t" << m2n_a[a] << ":" << m2n_b[b];}}
     cout << endl;
     return 0;
@@ -531,4 +443,99 @@ void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco
         }
     }
     gap_sco /= 2;
+}
+void get_opt(vec_string opt, string &file_a, string &file_b, vec_bool &range_a, vec_bool &range_b, bool &use_gap_ss, double &gap_ss_w, bool &use_prf, double &prf_w, double &gap_open, double &gap_ext, int &sep_cutoff, int &iter, bool &silent)
+{
+    ////////////////////////////////////////////////////////////////////////////////
+    for (int a = 0; a < opt.size(); a++)
+    {
+        string arg = opt[a];
+        if (arg.substr(0,1) == "-")
+        {
+            if(arg == "-a"){file_a = opt[a+1]; a++;}
+            else if(arg == "-b"){file_b = opt[a+1]; a++;}
+            else if(arg == "-range_a"){
+                while(a+1 < opt.size() && opt[a+1].substr(0,1) != "-")
+                {
+                    string r = opt[a+1];
+                    int i = stoi(r.substr(0,r.find('-')));
+                    int j = stoi(r.substr(r.find('-')+1));
+                    
+                    if(j+1 > range_a.size()){range_a.resize(j+1,0);}
+                    for(int n = i; n <= j; n++){range_a[n] = 1;}
+                    a++;
+                }
+            }
+            else if(arg == "-range_b"){
+                while(a+1 < opt.size() && opt[a+1].substr(0,1) != "-")
+                {
+                    string r = opt[a+1];
+                    int i = stoi(r.substr(0,r.find('-')));
+                    int j = stoi(r.substr(r.find('-')+1));
+                    
+                    if(j+1 > range_b.size()){range_b.resize(j+1,0);}
+                    for(int n = i; n <= j; n++){range_b[n] = 1;}
+                    a++;
+                }
+            }
+            else if(arg == "-use_prf"){use_prf = true;}
+            else if(arg == "-prf_w"){prf_w = stod(opt[a+1]); a++;}
+            else if(arg == "-use_gap_ss"){use_gap_ss = true;}
+            else if(arg == "-gap_ss_w"){gap_ss_w = stod(opt[a+1]); a++;}
+            else if(arg == "-gap_o"){gap_open = stod(opt[a+1]); a++;}
+            else if(arg == "-gap_e"){gap_ext  = stod(opt[a+1]); a++;}
+            else if(arg == "-sep_cut"){sep_cutoff  = stoi(opt[a+1]); a++;}
+            else if(arg == "-iter"){iter  = stoi(opt[a+1]); a++;}
+            else if(arg == "-silent"){silent = true;}
+        }
+    }
+    if(file_a.empty() || file_b.empty() || exists(file_a) == 0 || exists(file_b) == 0)
+    {
+        cout << "-------------------------------------------------------------------\n";
+        cout << "                          MAP_ALIGN                                \n";
+        cout << "-------------------------------------------------------------------\n";
+        cout << "  -a             contact map A               [REQUIRED]\n";
+        cout << "  -b             contact map B               [REQUIRED]\n";
+        cout << "  -gap_o         gap opening penalty         [Default=" << gap_open << "]\n";
+        cout << "  -gap_e         gap extension penalty       [Default=" << gap_ext << "]\n";
+        cout << "  -sep_cut       seq seperation cutoff       [Default=" << sep_cutoff << "]\n";
+        cout << "  -iter          number of iterations        [Default=" << iter << "]\n";
+        cout << "  -silent        \n";
+        cout << "-------------------------------------------------------------------\n";
+        cout << " Advanced options\n";
+        cout << "-------------------------------------------------------------------\n";
+        cout << "  -range_a       trim map A to specified range(s) (eg. 0-20 50-100)\n";
+        cout << "  -range_b       trim map B to specified range(s)\n";
+        cout << "-------------------------------------------------------------------\n";
+        cout << " Experimental features\n";
+        cout << "-------------------------------------------------------------------\n";
+        cout << "  -use_gap_ss    penalize gaps at secondary structure elements(SSE)\n";
+        cout << "  -gap_ss_w      gap penality weight at SSE  [Default=" << gap_ss_w << "]\n";
+        cout << "  -use_prf       use sequence profile\n";
+        cout << "  -prf_w         profile weight              [Default=" << prf_w << "]\n";
+        cout << "-------------------------------------------------------------------\n";
+        exit(1);
+    }
+    else if(silent == false)
+    {
+        cout << "OPT -------------------------------------------------------------------\n";
+        cout << "OPT                           MAP_ALIGN                                \n";
+        cout << "OPT -------------------------------------------------------------------\n";
+        cout << "OPT   -a          " << file_a       << endl;
+        cout << "OPT   -b          " << file_b       << endl;
+        cout << "OPT   -gap_o      " << gap_open     << endl;
+        cout << "OPT   -gap_e      " << gap_ext      << endl;
+        cout << "OPT   -sep_cut    " << sep_cutoff   << endl;
+        cout << "OPT   -iter       " << iter         << endl;
+        cout << "OPT   -silent     " << silent       << endl;
+        cout << "OPT -------------------------------------------------------------------\n";
+        cout << "OPT   -use_gap_ss  " << use_gap_ss  << endl; if(use_gap_ss == true){cout << "OPT   -gap_ss_w    " << gap_ss_w << endl;}
+        cout << "OPT   -use_prf     " << use_prf     << endl; if(use_prf    == true){cout << "OPT   -prf_w       " << prf_w    << endl;}
+        cout << "OPT -------------------------------------------------------------------\n";
+    }
+    if(gap_open > 0 || gap_ext > 0)
+    {
+        cout << "ERROR: gap penality should be < 0\n";
+        exit(1);
+    }
 }
