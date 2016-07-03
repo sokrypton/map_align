@@ -34,7 +34,7 @@ double exp_fast(double x){
 }
 
 inline bool exists (const std::string& name) {
-    ifstream f(name.c_str());
+    ifstream f(name);
     return f.good();
 }
 
@@ -245,7 +245,7 @@ vec_int load_data (string file, int sep_cutoff, mtx_double &mtx, vec_int &vec_di
     vec_int n2m;
     vec_int m2n;
     string line;
-    ifstream in(file.c_str());
+    ifstream in(file);
     while(getline(in,line)){
         istringstream is(line);
         string label;
@@ -345,43 +345,6 @@ void ini_SCO(double sep_x, double sep_y, mtx_double &SCO,
         }
     }
 }
-void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b){
-    int size_a = prf_a.size();
-    int size_b = prf_b.size();
-    
-    // compute profile similarity
-    P_SCO.resize(size_a,vector<double>(size_b,0));
-    vec_double pb(20,0); int prf_size = prf_a[0].size();
-    double pb_size = 0;
-    for(int ai = 0; ai < size_a; ai++)
-    {
-        if(aa_a[ai] != 'X')
-        {
-            for(int p=0; p < prf_size; p++){pb[p] += prf_a[ai][p];}
-            pb_size += 1;
-        }
-    }
-    for(int bi = 0; bi < size_b; bi++)
-    {
-        if(aa_b[bi] != 'X')
-        {
-            for(int p=0; p < prf_size; p++){pb[p] += prf_b[bi][p];}
-            pb_size += 1;
-        }
-    }
-    for (int i=0; i < size_a; i++){
-        for (int j=0; j < size_b; j++){
-            if(aa_a[i] == 'X' or aa_b[j] == 'X'){P_SCO[i][j] = 0;}
-            else{
-                double tmp_sco = 0;
-                for(int p=0; p < prf_size; p++){tmp_sco += (prf_a[i][p]*prf_b[j][p])/(pb[p]/pb_size);}
-                P_SCO[i][j] = log2(tmp_sco)/5 * prf_w;
-            }
-        }
-    }
-    
-}
-
 
 // MODIFY SCORE MATRIX: function for modifying the initial similarity matrix
 vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e, mtx_double &SCO, mtx_double &P_SCO,
@@ -392,6 +355,8 @@ vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e
     {
         // align
         a2b_tmp = align(gap_a,gap_b,gap_e,SCO,P_SCO);
+        
+        // update similarity matrix
         double IT = (double)it + 1;
         double s1 = (IT/(IT+1)); double s2 = (1/(IT+1));
         for(int a=0; a < vec_a.size(); a++){ // go through columns (vec_a) in map_a that has contacts
@@ -415,13 +380,12 @@ vec_int mod_SCO(double do_it, vec_double &gap_a, vec_double &gap_b, double gap_e
     }
     return(a2b_tmp);
 }
-// CHK: check number of contact and gaps made and compute alignment score
+// CHK: compute number of contacts/gaps made
 void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco,double& gap_sco,double& prf_sco,vec_int& vec_a_div,mtx_int& vec_a_i,mtx_double& mtx_a,mtx_double& mtx_b,vec_int& a2b,mtx_double &P_SCO){
     
     int size_a = mtx_a.size();
     bool use_prf = false; if(P_SCO.size() == size_a){use_prf = true;}
     
-    // compute number of contacts/gaps made
     int a = 0;int b = 0;
     for(int ai = 0; ai < size_a; ai++){
         int bi = a2b[ai];
@@ -444,6 +408,45 @@ void chk (vec_double &gap_a, vec_double &gap_b, double &gap_e_w, double& con_sco
     }
     gap_sco /= 2;
 }
+
+// compute profile similarity matrix
+void ini_prf_SCO(mtx_double &P_SCO, double &prf_w, mtx_double &prf_a, vec_char &aa_a, mtx_double &prf_b, vec_char &aa_b){
+    int size_a = prf_a.size();
+    int size_b = prf_b.size();
+    
+    P_SCO.resize(size_a,vector<double>(size_b,0));
+    
+    // compute background frequencies
+    vec_double pb(20,0); int prf_size = prf_a[0].size();
+    double pb_size = 0;
+    for(int ai = 0; ai < size_a; ai++)
+    {
+        if(aa_a[ai] != 'X'){ // ignore positions that have no identity
+            for(int p=0; p < prf_size; p++){pb[p] += prf_a[ai][p];}
+            pb_size += 1;
+        }
+    }
+    for(int bi = 0; bi < size_b; bi++)
+    {
+        if(aa_b[bi] != 'X'){ // ignore positions that have no identity
+            for(int p=0; p < prf_size; p++){pb[p] += prf_b[bi][p];}
+            pb_size += 1;
+        }
+    }
+    for (int i=0; i < size_a; i++){
+        for (int j=0; j < size_b; j++){
+            if(aa_a[i] == 'X' or aa_b[j] == 'X'){P_SCO[i][j] = 0;} // if no identity, return score of 0
+            else{
+                // profile comparison calculation, similar to HHsuite from Soeding.
+                double tmp_sco = 0;
+                for(int p=0; p < prf_size; p++){tmp_sco += (prf_a[i][p]*prf_b[j][p])/(pb[p]/pb_size);}
+                P_SCO[i][j] = log2(tmp_sco)/5 * prf_w;
+            }
+        }
+    }
+    
+}
+
 void get_opt(vec_string opt, string &file_a, string &file_b, vec_bool &range_a, vec_bool &range_b, bool &use_gap_ss, double &gap_ss_w, bool &use_prf, double &prf_w, double &gap_open, double &gap_ext, int &sep_cutoff, int &iter, bool &silent)
 {
     ////////////////////////////////////////////////////////////////////////////////
