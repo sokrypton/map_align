@@ -1,0 +1,3 @@
+perl a3m2alncut.pl T0806.fas T0806.aln T0806.cut
+ccmpred -n 100 -e 0 -A T0806.aln T0806.mtx
+perl mk_map.pl -aln T0806.aln -chk T0806.chk -cut T0806.cut -mtx T0806.mtx -map T0806.map -do_apc
