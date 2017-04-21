@@ -44,8 +44,30 @@ $ map_align -a A.map -b B.map
 - ```CON 0 4 1.0```  - [con]tact, i, j and weight.
 - ```PRF 0 A H 0.01 ... 0.01``` (optional) profile, i, amino acid (AA), secondary structure (SS) and profile frequencies (20 values). The order of the frequencies does not matter, as long as they match between the two contact maps being compared. H = Helix; E = Sheet; all other characters treated equally.
 
+### parsing output
+*  the output will be a single line (if -silent is used).
+   * ```MAX params map_a map_b contact_sco gap_sco total_sco 0:0 1:1 2:2 ...```
+   * the alignment is provided as ```0:0``` with index of first and second map.
+   * if "-use_prf" flag is used, the output will include an extra profile_sco column:
+      * ```MAX params map_a map_b contact_sco gap_sco profile_sco total_sco 0:0 1:1 2:2 ...```
+      
 ### Experimental features
 - WARNING: these are experimental features and may not work correctly!
 - "gap_ss" uses the SS info provided in the "PRF" line to increasing gap penalities within secondary structure elements, favoring gaps in loop or regions of missing density. 
 - "prf" uses the frequencies provided in the "PRF" line to assist in alignment. This option was intented to help align regions void of contact information.  The average frequencies of input profiles (from both maps) is used to compute the background frequencies. WARNING: This option may hurt finding the optimial alignment when aligning non-homologous proteins that share the same fold due to convergent evolution.
 
+### Convert GREMLIN/CCMPRED results to .map files
+* To do this you'll need the following files (see "example" directory).
+* aln file: containing the alignment used as input to GREMLIN/CCMPRED (after gap removal).
+* cut file: One line containing the full sequence, the second line containing the trimmed sequence (with "-" to indicated positions removed). This file is used to determine the mapping from the matrix file to the full length sequence.
+* mtx file: symmetric matrix containing length x length values of coupling results.
+* chk file: for profile generation, binary file from [csbuild](https://github.com/cangermueller/csblast). To generate this file you'll need the a3m/fas file before gap removal. This alignment is then given as input to csbuild. [csbuild](https://github.com/cangermueller/csblast) is used to add context-specific pseudocounts to the profiles.
+   * ```csbuild -i IN.a3m -I a3m -o OUT.chk -O chk -D csblast-2.2.3/data/K4000.crf ```
+* A perl script is provided to convert the data to a contact map file: 
+   * ```perl mk_map.pl -aln IN.aln -cut IN.cut -mtx IN.mtx -chk IN.chk -map OUT.map``` 
+
+### Convert PDB to .map files
+* pdb file: single chain, if multiple chains are provided, homo-oligomeric contacts will also be extracted.
+* chk file: (see info from above)
+* A perl script is provided to convert the data to a contact map file: 
+   * ```perl pdb2map.pl -pdb IN.pdb -chk IN.chk -map OUT.map```
