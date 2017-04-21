@@ -67,7 +67,8 @@ $ map_align -a A.map -b B.map
    * ```perl mk_map.pl -aln IN.aln -cut IN.cut -mtx IN.mtx -chk IN.chk -map OUT.map -do_apc``` 
    * the "-do_apc" flag is REQUIRED if no APC (Average Product Correction) was performed to input mtx.
 
-### Convert PDB to .map files
+(work in progress)
+### Convert PDB to .map files 
 * pdb file: single chain, if multiple chains are provided, homo-oligomeric contacts will also be extracted.
 * chk file: (see info from above)
 * A perl script is provided to convert the data to a contact map file: 
