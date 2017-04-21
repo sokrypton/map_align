@@ -64,7 +64,8 @@ $ map_align -a A.map -b B.map
 * chk file: for profile generation, binary file from [csbuild](https://github.com/cangermueller/csblast). To generate this file you'll need the a3m/fas file before gap removal. This alignment is then given as input to csbuild. [csbuild](https://github.com/cangermueller/csblast) is used to add context-specific pseudocounts to the profiles.
    * ```csbuild -i IN.a3m -I a3m -o OUT.chk -O chk -D csblast-2.2.3/data/K4000.crf ```
 * A perl script is provided to convert the data to a contact map file: 
-   * ```perl mk_map.pl -aln IN.aln -cut IN.cut -mtx IN.mtx -chk IN.chk -map OUT.map``` 
+   * ```perl mk_map.pl -aln IN.aln -cut IN.cut -mtx IN.mtx -chk IN.chk -map OUT.map -do_apc``` 
+   * the "-do_apc" flag is REQUIRED if no APC (Average Product Correction) was performed to input mtx.
 
 ### Convert PDB to .map files
 * pdb file: single chain, if multiple chains are provided, homo-oligomeric contacts will also be extracted.
