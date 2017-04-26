@@ -1,5 +1,5 @@
 ### Convert GREMLIN/CCMPRED results to .map files
-* To do this you'll need the following files (see "mk_map" directory).
+* see "cmd" file for full example!
 * aln file: containing the alignment used as input to GREMLIN/CCMPRED (after gap removal).
 * cut file: One line containing the full sequence, the second line containing the trimmed sequence (with "-" to indicated positions removed). This file is used to determine the mapping from the matrix file to the full length sequence.
 * mtx file: symmetric matrix containing length x length values of coupling results.
