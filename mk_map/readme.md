@@ -8,3 +8,17 @@
 * A perl script is provided to convert the data to a contact map file: 
    * ```perl mk_map.pl -aln TMP.aln -cut TMP.cut -mtx TMP.mtx -chk TMP.chk -map TMP.map -do_apc``` 
    * the "-do_apc" flag is REQUIRED if no APC (Average Product Correction) was performed to input mtx.
+
+### Convert PDB to .map files 
+* pdb file: single chain, single model, no HETATM
+* chk file: (see above for more information)
+   * WARNING: the PDB numbering should match the the input FASTA file
+   * ```hhblits -o /dev/null -d DATABASE -cpu ??? -id 90 -cov 75 -e 1E-10 -n 2 -i TMP.fasta -oa3m TMP.a3m```
+   * ```csbuild -i TMP.a3m -I a3m -o TMP.chk -O chk -D csblast-2.2.3/data/K4000.crf```
+* ss file: output from [stride](http://webclu.bio.wzw.tum.de/stride/) (secondary structure)
+   * ```stride TMP.pdb > TMP.ss```
+   * WARNING: stride only reads ATOM records!
+* A perl script is provided to convert the data to a contact map file: 
+   * ```perl pdb2map.pl -pdb TMP.pdb -map TMP.map -chk TMP.chk -ss TMP.ss ```
+   * ss and chk files are NOT required
+
