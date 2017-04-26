@@ -57,7 +57,7 @@ $ map_align -a A.map -b B.map
 - "prf" uses the frequencies provided in the "PRF" line to assist in alignment. This option was intented to help align regions void of contact information.  The average frequencies of input profiles (from both maps) is used to compute the background frequencies. WARNING: This option may hurt finding the optimial alignment when aligning non-homologous proteins that share the same fold due to convergent evolution.
 
 ### Convert GREMLIN/CCMPRED results to .map files
-* See [mk_map](https://github.com/sokrypton/map_align/mk_map) directory!
+* See [mk_map](https://github.com/sokrypton/map_align/tree/master/mk_map) directory!
 
 ### Convert PDB to .map files 
-* See [mk_map](https://github.com/sokrypton/map_align/mk_map) directory!
+* See [mk_map](https://github.com/sokrypton/map_align/tree/master/mk_map) directory!
