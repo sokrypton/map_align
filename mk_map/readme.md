@@ -10,6 +10,7 @@
    * the "-do_apc" flag is REQUIRED if no APC (Average Product Correction) was performed to input mtx.
 
 ### Convert PDB to .map files 
+* see "cmd_pdb2map" file for full example!
 * pdb file: single chain, single model, no HETATM
 * chk file: (see above for more information)
    * WARNING: the PDB numbering should match the the input FASTA file
