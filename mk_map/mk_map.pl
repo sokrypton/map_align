@@ -18,7 +18,6 @@ while ($arg = shift())
 unless(-e $aln){die("-aln '$aln' not found");}
 unless(-e $cut){die("-cut '$cut' not found");}
 unless(-e $mtx){die("-mtx '$mtx' not found");}
-unless(-e $chk){die("-chk '$chk' not found");}
 unless(defined $map){die("-map '$map' not defined");}
 
 # params for prob calculation (24Aug2015)
@@ -52,15 +51,16 @@ while(exists $CST[$c]){
 	print MAP "CON $i $j $prob\n";
 	$c++;
 }
-
-# get profile
-my @CHK_cs = parse_checkpoint_file($chk);
-my @SEQ = split(//,$seq);
-my $n = 0;
-while(exists $SEQ[$n]){
-	my @fix_cs;for my $i (0..19){$fix_cs[$i] = sprintf("%.6f",$CHK_cs[$n][$i]);}
-	print MAP "PRF $n ".$SEQ[$n]." X @fix_cs\n";
-	$n++;
+if(-e $chk){
+	# get profile
+	my @CHK_cs = parse_checkpoint_file($chk);
+	my @SEQ = split(//,$seq);
+	my $n = 0;
+	while(exists $SEQ[$n]){
+		my @fix_cs;for my $i (0..19){$fix_cs[$i] = sprintf("%.6f",$CHK_cs[$n][$i]);}
+		print MAP "PRF $n ".$SEQ[$n]." X @fix_cs\n";
+		$n++;
+	}
 }
 close(MAP);
 
