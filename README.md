@@ -46,10 +46,10 @@ $ map_align -a A.map -b B.map
 
 ### parsing output
 *  the output will be a single line (if -silent is used).
-   * ```MAX params map_a map_b contact_sco gap_sco total_sco 0:0 1:1 2:2 ...```
+   * ```MAX params map_a map_b contact_sco gap_sco total_sco aln_len 0:0 1:1 2:2 ...```
    * the alignment is provided as ```0:0``` with index of first and second map.
    * if "-use_prf" flag is used, the output will include an extra profile_sco column:
-      * ```MAX params map_a map_b contact_sco gap_sco profile_sco total_sco 0:0 1:1 2:2 ...```
+      * ```MAX params map_a map_b contact_sco gap_sco profile_sco total_sco aln_len 0:0 1:1 2:2 ...```
       
 ### Experimental features
 - WARNING: these are experimental features and may not work correctly!
