@@ -1,4 +1,4 @@
 hhblits -o /dev/null -d DATABASE -cpu 20 -id 90 -cov 75 -e 1E-10 -n 2 -i 5CAJ_A.fasta -oa3m 5CAJ_A.a3m
 csbuild -i 5CAJ_A.a3m -I a3m -o 5CAJ_A.chk -O chk -D csblast-2.2.3/data/K4000.crf
 stride 5CAJ_A.pdb > 5CAJ_A.ss
-perl pdb2map.pl -pdb 5CAJ_A.pdb -map 5CAJ_A.map -chk 5CAJ_A.chk -ss 5CAJ_A.ss
+perl pdb2map.pl -pdb 5CAJ_A.pdb -new_pdb 5CAJ_A.map.pdb -map 5CAJ_A.map -chk 5CAJ_A.chk -ss 5CAJ_A.ss

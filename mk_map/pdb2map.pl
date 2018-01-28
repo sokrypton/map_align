@@ -41,7 +41,7 @@ my %AT;
 #######################################
 
 
-my ($pdb,$chk,$ss,$map);
+my ($pdb,$chk,$ss,$map,$new_pdb);
 while ($arg = shift())
 {
 	if ($arg =~ m/^-/)
@@ -51,15 +51,22 @@ while ($arg = shift())
 		if ($arg eq "-chk") {$chk = shift();next;}
 		if ($arg eq "-ss" ) {$ss  = shift();next;}
 		if ($arg eq "-map") {$map = shift();next;}
+		if ($arg eq "-new_pdb") {$new_pdb = shift();next;}
 	}
 }
 
 unless(-e $pdb){die("-pdb '$pdb' not found");}
 unless(defined $map){die("-map '$map' not defined");}
+unless(defined $new_pdb){die("-new_pdb '$new_pdb' not defined");}
 
-my @MAP;my $errors = 0;
+my @MAP;
+my @NEW_PDB;
+my $errors = 0;
 
-my ($start,$pdb_seq,@CON) = get_contacts($pdb);
+my ($start,$pdb_seq,$ref_lines,$ref_CON) = get_contacts($pdb);
+my %lines = %$ref_lines;
+my @CON = @$ref_CON;
+
 if(!-e $chk){
 	my $len = length($pdb_seq);
 	push(@MAP,"LEN $len");
@@ -69,6 +76,15 @@ if(!-e $chk){
 		my $j = $CON[$n][3] - $start;
 		push(@MAP,"CON $i $j 1");
 		$n++;
+	}
+	my $resn = $start;
+	for(my $i = 0; $i < length($pdb_seq); $i++){
+		if(substr($pdb_seq,$i,1) ne "-"){
+			for my $line (@{$lines{$resn}}){
+				push(@NEW_PDB,substr($line,0,22).sprintf("%4s",$resn-$start).substr($line,26));
+			}
+		}
+		$resn++;
 	}
 }
 else{
@@ -100,6 +116,15 @@ else{
 			}
 
 			push(@MAP,"PRF $n $aa $ss @fix_cs");
+		}
+		my $resn = $start;
+		for(my $i = 0; $i < length($pdb_seq); $i++){
+			if(substr($pdb_seq,$i,1) ne "-"){
+				for my $line (@{$lines{$resn}}){
+					push(@NEW_PDB,substr($line,0,22).sprintf("%4s",$i).substr($line,26));
+				}
+			}
+			$resn++;
 		}
 	}
 	else{
@@ -144,6 +169,15 @@ else{
 				}
 				push(@MAP,"PRF $n $aa $ss @fix_cs");
 			}
+			my $resn = $start;
+			for(my $i = 0; $i < length($pdb_seq); $i++){
+				if(substr($pdb_seq,$i,1) ne "-"){
+					for my $line (@{$lines{$resn}}){
+						push(@NEW_PDB,substr($line,0,22).sprintf("%4s",$resn - 1).substr($line,26));
+					}
+				}
+				$resn++;
+			}
 		}
 	}
 }
@@ -153,6 +187,11 @@ if($errors == 0){
 		print MAP "$line\n";
 	}
 	close(MAP);
+	open(NEW_PDB,">$new_pdb");
+	for my $line (@NEW_PDB){
+		print NEW_PDB "$line\n";
+	}
+	close(NEW_PDB);
 }
 sub parse_checkpoint_file
 {
@@ -189,6 +228,7 @@ sub get_contacts
 	my @CA;
 	my %XYZ;
 	my %SEQ;
+	my %PDB_LINES;
 	open(PDB,$pdb);
 	while(my $line = <PDB>){
 		chomp($line);
@@ -211,6 +251,9 @@ sub get_contacts
 					my $y = substr($line,38,8)+0;
 					my $z = substr($line,46,8)+0;
 					@{$XYZ{$resn}{$atom}} = ($x,$y,$z);
+				}
+				if(exists $AT{"X"}{$atom}){
+					push(@{$PDB_LINES{$resn}},$line);
 				}
 			}
 		}
@@ -245,7 +288,7 @@ sub get_contacts
 		if(exists $SEQ{$i}){$seqstr .= $SEQ{$i};}
 		else{$seqstr .= "-";}
 	}
-	return($CA[0],$seqstr,@CON);
+	return($CA[0],$seqstr,\%PDB_LINES,\@CON);
 }
 sub get_stride
 {

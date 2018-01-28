@@ -20,6 +20,8 @@
    * ```stride TMP.pdb > TMP.ss```
    * WARNING: stride only reads ATOM records!
 * A perl script is provided to convert the data to a contact map file: 
-   * ```perl pdb2map.pl -pdb TMP.pdb -map TMP.map -chk TMP.chk -ss TMP.ss ```
-   * ss and chk files are NOT required
+   * ```perl pdb2map.pl -pdb TMP.pdb -new_pdb TMP.fix.pdb -map TMP.map -chk TMP.chk -ss TMP.ss ```
+   * -new_pdb outputs a new pdb renumbered to match the map numbering
+   * -ss and -chk files are NOT required
+   * WARNING: only single chain supported at this time!
 
