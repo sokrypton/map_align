@@ -4,6 +4,9 @@ _map_align_ takes two contact maps and returns an alignment that attempts to max
 
 ![example image](https://raw.githubusercontent.com/sokrypton/map_align/master/map_align_fig.png)
 
+### Update
+- (20Feb2018) A new implementation that works directly with PDB structures: https://github.com/gjoni/map_align
+
 ### Installation
 ```sh
 $ g++ -O3 -std=c++0x -o map_align main.cpp
