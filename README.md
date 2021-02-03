@@ -11,6 +11,10 @@ _map_align_ takes two contact maps and returns an alignment that attempts to max
 ```sh
 $ g++ -O3 -std=c++0x -o map_align main.cpp
 ```
+For parallel version:
+```sh
+$ g++ -O3 -std=c++0x -o map_align_omp main_omp.cpp -fopenmp
+```
 
 ### Usage
 ```
